@@ -76,7 +76,18 @@ def ytdlp_options(output, audio=True, use_cookies=True):
 
 @app.after_request
 def cors(response):
-    response.headers["Access-Control-Allow-Origin"] = os.environ.get("CORS_ORIGIN", "*")
+    configured_origins = {
+        item.strip()
+        for item in os.environ.get("CORS_ORIGIN", "*").split(",")
+        if item.strip().startswith(("http://", "https://")) or item.strip() == "*"
+    }
+    request_origin = request.headers.get("Origin", "")
+    if "*" in configured_origins or not configured_origins:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    elif request_origin in configured_origins:
+        response.headers["Access-Control-Allow-Origin"] = request_origin
+    else:
+        response.headers["Access-Control-Allow-Origin"] = next(iter(configured_origins))
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, x-api-key"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
