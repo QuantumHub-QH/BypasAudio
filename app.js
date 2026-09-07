@@ -6,6 +6,7 @@ const defaultSettings = { speed: 1, volume: 80, pitch: 0 };
 let settings = { ...defaultSettings };
 let currentFile = null;
 let sessionApiKey = "";
+const accountStorageKey = "mchlern.roblox.account";
 
 function formatTime(seconds) {
   if (!Number.isFinite(seconds)) return "00:00";
@@ -19,6 +20,41 @@ function setMessage(target, text, type = "") {
   target.className = `inline-message ${type}`.trim();
 }
 
+function restoreAccount(result, apiKey, showMessage = false) {
+  sessionApiKey = apiKey;
+  $("#connectionStatus").classList.add("connected");
+  $("#connectionStatus span:last-child").textContent = `@${result.username}`;
+  $("#profileAvatar").src = result.avatarUrl;
+  $("#profileDisplayName").textContent = result.displayName;
+  $("#profileUsername").textContent = `@${result.username} · ID ${result.userId}`;
+  $("#profileCard").classList.remove("hidden");
+  if (showMessage) setMessage($("#sourceMessage"), `Akun Roblox ${result.displayName} berhasil terhubung.`, "success");
+}
+
+function saveAccount(result, apiKey) {
+  localStorage.setItem(accountStorageKey, JSON.stringify({
+    apiKey,
+    userId: result.userId,
+    username: result.username,
+    displayName: result.displayName,
+    avatarUrl: result.avatarUrl,
+  }));
+}
+
+const savedAccount = localStorage.getItem(accountStorageKey);
+if (savedAccount) {
+  try {
+    const account = JSON.parse(savedAccount);
+    if (account.apiKey && account.userId && account.username) {
+      $("#userId").value = account.userId;
+      $("#apiKey").value = account.apiKey;
+      restoreAccount(account, account.apiKey);
+    }
+  } catch {
+    localStorage.removeItem(accountStorageKey);
+  }
+}
+
 function updatePlayback() {
   const pitchFactor = Math.pow(2, settings.pitch / 12);
   audio.playbackRate = settings.speed * pitchFactor;
@@ -29,18 +65,29 @@ function updatePlayback() {
   $("#speedValue").textContent = `${Number(settings.speed).toFixed(2)}×`;
   $("#volumeValue").textContent = `${settings.volume}%`;
   $("#pitchValue").textContent = `${settings.pitch > 0 ? "+" : ""}${settings.pitch} st`;
+  const recommendation = $("#recommendationText");
+  const speed = Number(settings.speed);
+  const recommended = speed >= 1.5 && speed <= 1.6;
+  recommendation.innerHTML = recommended
+    ? "✦ <b>Rekomendasi aktif:</b> speed ini cocok untuk musik tetap terasa normal saat bermain."
+    : "✦ <b>Rekomendasi game:</b> gunakan 1.5× – 1.6× agar musik tetap terasa normal.";
+  recommendation.classList.toggle("recommendation-active", recommended);
   document.querySelectorAll("[data-speed]").forEach((button) => {
     button.classList.toggle("active", Number(button.dataset.speed) === Number(settings.speed));
   });
 }
 
-function loadAudio(file, label = file.name) {
+function loadAudio(file, label = file.name, thumbnail = "") {
   currentFile = file;
   audio.src = URL.createObjectURL(file);
   $("#trackName").textContent = label;
   $("#trackDetail").textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB · Local preview`;
   $("#fileBadge").textContent = "READY";
   $("#coverInitial").textContent = label.slice(0, 2).toUpperCase();
+  const coverImage = $("#coverImage");
+  coverImage.src = thumbnail;
+  coverImage.classList.toggle("visible", Boolean(thumbnail));
+  $("#coverInitial").classList.toggle("hidden", Boolean(thumbnail));
   $("#playerState").textContent = "Ready to preview";
   setMessage($("#sourceMessage"), "Audio berhasil dimuat. Atur playback lalu upload.", "success");
   updatePlayback();
@@ -73,14 +120,8 @@ $("#connectForm").addEventListener("submit", (event) => {
   }).then(async (response) => {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Koneksi gagal.");
-    sessionApiKey = apiKey;
-    $("#connectionStatus").classList.add("connected");
-    $("#connectionStatus span:last-child").textContent = `@${result.username}`;
-    $("#profileAvatar").src = result.avatarUrl;
-    $("#profileDisplayName").textContent = result.displayName;
-    $("#profileUsername").textContent = `@${result.username} · ID ${result.userId}`;
-    $("#profileCard").classList.remove("hidden");
-    setMessage($("#sourceMessage"), `Akun Roblox ${result.displayName} berhasil terhubung.`, "success");
+    restoreAccount(result, apiKey, true);
+    saveAccount(result, apiKey);
   }).catch((error) => setMessage($("#sourceMessage"), error.message, "error"));
 });
 
@@ -146,7 +187,7 @@ $("#fetchButton").addEventListener("click", () => {
       const audioResponse = await fetch(`${API_BASE}${result.audioUrl}`);
       if (!audioResponse.ok) throw new Error("Audio hasil fetch tidak dapat diputar.");
       const blob = await audioResponse.blob();
-      loadAudio(new File([blob], result.filename, { type: "audio/mpeg" }), `Audio dari ${result.source}`);
+      loadAudio(new File([blob], result.filename, { type: "audio/mpeg" }), result.title || `Audio dari ${result.source}`, result.thumbnail || "");
     })
     .catch((error) => setMessage($("#sourceMessage"), error.message, "error"))
     .finally(() => { $("#fetchButton").disabled = false; });

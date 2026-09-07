@@ -50,7 +50,7 @@
             <img id="profileAvatar" alt="Avatar Roblox" />
             <div><strong id="profileDisplayName"></strong><small id="profileUsername"></small></div>
           </div>
-          <div class="account-note"><span>⌁</span><p>API key hanya dipakai selama sesi ini dan dikirim melalui koneksi backend.</p></div>
+          <div class="account-note"><span>⌁</span><p>Profil dan API key disimpan lokal di browser ini agar tidak perlu konek ulang.</p></div>
         </aside>
 
         <div class="content-column">
@@ -81,7 +81,7 @@
           <section class="card player-card">
             <div class="panel-head panel-head-player"><div><p class="eyebrow">PREVIEW</p><h2>Audio preview</h2></div><span class="file-badge" id="fileBadge">NO AUDIO</span></div>
             <div class="player-main">
-              <div class="cover-art"><div class="cover-lines"></div><span id="coverInitial">MT</span></div>
+              <div class="cover-art"><div class="cover-lines"></div><img id="coverImage" alt="" /><span id="coverInitial">MT</span></div>
               <div class="track-meta"><h3 id="trackName">Pilih audio untuk mulai</h3><p id="trackDetail">Preview audio kamu akan muncul di sini</p><div class="waveform" id="waveform" aria-hidden="true"></div></div>
               <button class="play-button" id="playButton" type="button" aria-label="Play preview">▶</button>
             </div>
@@ -93,7 +93,7 @@
           <section class="card controls-card">
             <div class="panel-head"><span class="step">03</span><div><p class="eyebrow">PLAYBACK CONTROL</p><h2>Setelan playback</h2></div><button class="reset-button" id="resetButton" type="button">↺ Reset setting</button></div>
             <div class="control-grid">
-              <div class="control-block"><div class="control-label"><span>Speed</span><strong id="speedValue">1.00×</strong></div><input id="speedControl" type="range" min="0.5" max="3.5" step="0.01" value="1" /><div class="preset-list" id="speedPresets"><button type="button" data-speed="1">1.0×</button><button type="button" data-speed="1.5">1.5×</button><button type="button" data-speed="1.6">1.6×</button><button type="button" data-speed="2.3">2.3×</button><button type="button" data-speed="2.6">2.6×</button><button type="button" data-speed="3">3.0×</button></div><p class="recommendation">✦ <b>Rekomendasi game:</b> 1.5× – 1.6× untuk musik tetap terasa normal.</p></div>
+              <div class="control-block"><div class="control-label"><span>Speed</span><strong id="speedValue">1.00×</strong></div><input id="speedControl" type="range" min="0.5" max="3.5" step="0.01" value="1" /><div class="preset-list" id="speedPresets"><button type="button" data-speed="1">1.0×</button><button type="button" data-speed="1.5">1.5×</button><button type="button" data-speed="1.6">1.6×</button><button type="button" data-speed="2.3">2.3×</button><button type="button" data-speed="2.6">2.6×</button><button type="button" data-speed="3">3.0×</button></div><p class="recommendation" id="recommendationText">✦ <b>Rekomendasi game:</b> 1.5× – 1.6× untuk musik tetap terasa normal.</p></div>
               <div class="control-block"><div class="control-label"><span>Volume</span><strong id="volumeValue">80%</strong></div><input id="volumeControl" type="range" min="0" max="100" value="80" /><div class="range-endpoints"><span>Mute</span><span>Max</span></div></div>
               <div class="control-block"><div class="control-label"><span>Pitch</span><strong id="pitchValue">0 st</strong></div><input id="pitchControl" type="range" min="-12" max="12" step="1" value="0" /><div class="range-endpoints"><span>-12 st</span><span>+12 st</span></div></div>
             </div>
