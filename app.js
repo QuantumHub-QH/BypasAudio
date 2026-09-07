@@ -59,7 +59,7 @@ if (savedAccount) {
 
 function updatePlayback() {
   const pitchFactor = Math.pow(2, settings.pitch / 12);
-  audio.playbackRate = settings.speed * pitchFactor;
+  audio.playbackRate = settings.speed;
   audio.volume = settings.volume / 100;
   $("#speedControl").value = settings.speed;
   $("#volumeControl").value = settings.volume;
@@ -70,9 +70,10 @@ function updatePlayback() {
   const recommendation = $("#recommendationText");
   const speed = Number(settings.speed);
   const recommended = speed >= 1.5 && speed <= 1.6;
+  const restoreSpeed = (1 / speed).toFixed(2);
   recommendation.innerHTML = recommended
-    ? "✦ <b>Rekomendasi aktif:</b> speed ini cocok untuk musik tetap terasa normal saat bermain."
-    : "✦ <b>Rekomendasi game:</b> gunakan 1.5× – 1.6× agar musik tetap terasa normal.";
+    ? `✦ <b>Preset bypass aktif:</b> pitch mengikuti ${speed.toFixed(2)}×. Playback game normal: ${restoreSpeed}×.`
+    : `✦ <b>Rekomendasi bypass:</b> samakan pitch dengan speed, lalu playback game sekitar ${restoreSpeed}×.`;
   recommendation.classList.toggle("recommendation-active", recommended);
   document.querySelectorAll("[data-speed]").forEach((button) => {
     button.classList.toggle("active", Number(button.dataset.speed) === Number(settings.speed));
@@ -283,7 +284,7 @@ $("#uploadButton").addEventListener("click", async () => {
       formData.append("title", (customTitle || "MCHLERN UPLOADER").slice(0, 50));
       formData.append("speed", String(settings.speed));
       formData.append("volume", String(settings.volume));
-      formData.append("pitch", String(settings.pitch));
+      formData.append("pitch", String(Math.pow(2, settings.pitch / 12)));
       label.textContent = `Uploading ${index + 1}/${files.length}...`;
       percent.textContent = `${Math.round((index / files.length) * 100)}%`;
       bar.style.width = `${Math.round((index / files.length) * 100)}%`;

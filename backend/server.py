@@ -196,19 +196,8 @@ def process_audio(source, speed, volume, pitch):
     output = TEMP_DIR / f"processed_{uuid.uuid4().hex}.mp3"
     speed = max(0.5, min(float(speed), 3.5))
     volume = max(0, min(float(volume) / 100, 2))
-    pitch = max(-12, min(float(pitch), 12))
-    filters = [f"volume={volume}"]
-    if pitch:
-        pitch_factor = 2 ** (pitch / 12)
-        filters.extend([f"asetrate=44100*{pitch_factor}", "aresample=44100", f"atempo={1 / pitch_factor}"])
-    remaining = speed
-    while remaining > 2:
-        filters.append("atempo=2")
-        remaining /= 2
-    while remaining < 0.5:
-        filters.append("atempo=0.5")
-        remaining /= 0.5
-    filters.append(f"atempo={remaining}")
+    pitch = max(0.1, min(float(pitch), 3.5))
+    filters = [f"asetrate=44100*{pitch}", f"atempo={max(0.5, min(100, speed / pitch))}", "aresample=44100", f"volume={volume}"]
     command = ["ffmpeg", "-y", "-i", str(source), "-vn", "-af", ",".join(filters), "-codec:a", "libmp3lame", str(output)]
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     return output
@@ -227,7 +216,7 @@ def upload():
     audio.save(source)
     processed = None
     try:
-        processed = process_audio(source, request.form.get("speed", "1"), request.form.get("volume", "80"), request.form.get("pitch", "0"))
+        processed = process_audio(source, request.form.get("speed", "1"), request.form.get("volume", "80"), request.form.get("pitch", "1"))
         payload = {"request": __import__("json").dumps({
             "assetType": "Audio",
             "displayName": request.form.get("title", Path(audio.filename).stem)[:50],
