@@ -188,7 +188,7 @@ def update_cookies():
     value = base64.b64encode(contents).decode("ascii")
     query = """
       mutation UpsertVariable($input: VariableUpsertInput!) {
-        variableUpsert(input: $input) { id }
+        variableUpsert(input: $input)
       }
     """
     variables = {"input": {
@@ -209,7 +209,10 @@ def update_cookies():
     except (requests.RequestException, ValueError):
         return jsonify(error="Railway tidak dapat dihubungi."), 502
     if not response.ok or body.get("errors"):
-        return jsonify(error="Railway menolak update variable. Cek ID project, environment, service, dan token."), 502
+        errors = body.get("errors") or []
+        detail = errors[0].get("message", "") if errors else ""
+        safe_detail = detail[:180].replace("\n", " ")
+        return jsonify(error=f"Railway menolak update variable{': ' + safe_detail if safe_detail else '. Cek token dan semua ID.'}"), 502
     return jsonify(updated=True, message="YOUTUBE_COOKIES berhasil diperbarui di Railway. Redeploy akan berjalan otomatis.")
 
 
