@@ -21,7 +21,13 @@ def cookie_file():
     if not encoded:
         return None
     target = Path(tempfile.gettempdir()) / "mchlern-youtube-cookies.txt"
-    target.write_bytes(base64.b64decode(encoded))
+    try:
+        decoded = base64.b64decode(encoded, validate=True)
+    except (ValueError, base64.binascii.Error) as error:
+        raise RuntimeError("YOUTUBE_COOKIES bukan base64 yang valid.") from error
+    if b"# Netscape HTTP Cookie File" not in decoded[:5000] and b"\t.youtube.com\t" not in decoded:
+        raise RuntimeError("YOUTUBE_COOKIES bukan export cookies.txt format Netscape.")
+    target.write_bytes(decoded)
     return str(target)
 
 
@@ -33,7 +39,7 @@ def supported_url(value):
         return False
 
 
-def ytdlp_options(output, audio=True):
+def ytdlp_options(output, audio=True, use_cookies=True):
     options = {
         "outtmpl": str(output),
         "quiet": True,
@@ -48,7 +54,7 @@ def ytdlp_options(output, audio=True):
             "format": "bestaudio/best",
             "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}],
         })
-    cookies = cookie_file()
+    cookies = cookie_file() if use_cookies else None
     if cookies:
         options["cookiefile"] = cookies
     return options
@@ -113,9 +119,11 @@ def fetch_audio():
     last_error = ""
     is_tiktok = "tiktok.com" in url
     clients = [None] if is_tiktok else ["android_vr", "ios", "tv_embedded", "web", "mweb", "android_music"]
-    for client in clients:
-        try:
-            options = ytdlp_options(output, audio=True)
+    cookie_modes = [True, False] if not is_tiktok else [False]
+    for use_cookies in cookie_modes:
+        for client in clients:
+          try:
+            options = ytdlp_options(output, audio=True, use_cookies=use_cookies)
             options["http_headers"] = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125 Safari/537.36",
                 "Referer": "https://www.tiktok.com/" if is_tiktok else "https://www.youtube.com/",
@@ -136,13 +144,15 @@ def fetch_audio():
             if not audio_path.exists():
                 raise RuntimeError("File audio tidak berhasil dibuat.")
             return jsonify(title=title, thumbnail=thumbnail, filename=audio_path.name, audioUrl=f"/temp/{audio_path.name}", source=url)
-        except Exception as error:
-            last_error = str(error)
-            continue
+          except Exception as error:
+              last_error = str(error)
+              continue
     message = last_error
     lowered = message.lower()
-    if any(term in lowered for term in ("sign in", "bot", "confirm you're not", "cookies", "po token")):
-        message = "YouTube menolak request. Pastikan YOUTUBE_COOKIES di Railway berisi base64 cookies.txt yang valid, atau gunakan video publik lain."
+    if "bukan base64" in lowered or "bukan export" in lowered:
+        message = "Format YOUTUBE_COOKIES di Railway tidak valid. Export ulang cookies.txt Netscape lalu encode base64."
+    elif any(term in lowered for term in ("sign in", "bot", "confirm you're not", "cookies", "po token")):
+        message = "YouTube menolak request. Cookie Railway mungkin expired; video publik akan dicoba tanpa cookie. Export cookies baru jika tetap gagal."
     elif any(term in lowered for term in ("private", "members-only", "age-restricted", "unavailable")):
         message = "Video tidak tersedia karena private, batas usia, member-only, atau region lock."
     else:
