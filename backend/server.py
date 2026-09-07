@@ -244,6 +244,8 @@ def upload():
         return jsonify(error="FFmpeg gagal memproses audio."), 422
     except requests.RequestException:
         return jsonify(error="Roblox Open Cloud tidak dapat dihubungi."), 502
+    except (ValueError, OSError) as error:
+        return jsonify(error=f"Upload gagal diproses: {str(error)[:240]}"), 422
     finally:
         for item in (source, processed):
             if item and item.exists():

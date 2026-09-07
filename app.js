@@ -288,8 +288,19 @@ $("#uploadButton").addEventListener("click", async () => {
       label.textContent = `Uploading ${index + 1}/${files.length}...`;
       percent.textContent = `${Math.round((index / files.length) * 100)}%`;
       bar.style.width = `${Math.round((index / files.length) * 100)}%`;
-      const response = await fetch(`${API_BASE}/api/upload`, { method: "POST", headers: { "x-api-key": sessionApiKey }, body: formData });
-      const result = await response.json();
+      let response;
+      try {
+        response = await fetch(`${API_BASE}/api/upload`, { method: "POST", headers: { "x-api-key": sessionApiKey }, body: formData });
+      } catch {
+        throw new Error("Server upload tidak merespons. Cek Railway sedang online lalu coba lagi.");
+      }
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        throw new Error(`Server upload mengirim respons tidak valid (HTTP ${response.status}).`);
+      }
       if (!response.ok) throw new Error(result.error || "Upload gagal.");
     }
     bar.style.width = "100%"; percent.textContent = "100%"; label.textContent = "Upload selesai";
