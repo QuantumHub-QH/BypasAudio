@@ -65,7 +65,14 @@ def cors(response):
 
 @app.route("/", methods=["GET"])
 def health():
-    return "MCHLERN TOOLS backend online"
+    return send_from_directory(ROOT, "index.html")
+
+
+@app.route("/<path:filename>", methods=["GET"])
+def frontend_asset(filename):
+    if filename.startswith(("api/", "temp/")):
+        return jsonify(error="Not found"), 404
+    return send_from_directory(ROOT, filename)
 
 
 @app.route("/api/connect", methods=["POST"])
