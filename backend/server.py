@@ -22,6 +22,9 @@ app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
 
 def cookie_file():
+    # Admin uploads on the persistent volume must override an older env value.
+    if COOKIE_PATH.exists() and COOKIE_PATH.stat().st_size > 0:
+        return str(COOKIE_PATH)
     encoded = os.environ.get("YOUTUBE_COOKIES", "").strip()
     if encoded:
         target = Path(tempfile.gettempdir()) / "mchlern-youtube-cookies.txt"
@@ -33,8 +36,6 @@ def cookie_file():
             raise RuntimeError("YOUTUBE_COOKIES bukan export cookies.txt format Netscape.")
         target.write_bytes(decoded)
         return str(target)
-    if COOKIE_PATH.exists():
-        return str(COOKIE_PATH)
     return None
 
 
@@ -185,6 +186,15 @@ def update_cookies():
         return jsonify(error="File harus berupa cookies.txt format Netscape."), 400
     COOKIE_PATH.write_bytes(contents)
     return jsonify(updated=True, message="Cookies aktif di server. Tidak perlu Railway API token.")
+
+
+@app.route("/api/admin/cookies/status", methods=["GET"])
+def cookies_status():
+    if not admin_authorized():
+        return jsonify(error="Password admin salah atau belum dikonfigurasi."), 401
+    if not COOKIE_PATH.exists():
+        return jsonify(active=False, source="none")
+    return jsonify(active=True, source=str(COOKIE_PATH), size=COOKIE_PATH.stat().st_size)
 
 
 @app.route("/temp/<path:filename>", methods=["GET"])
