@@ -226,7 +226,7 @@ def process_audio(source, speed, volume, pitch):
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
-    api_key = request.headers.get("x-api-key", "").strip()
+    api_key = (request.headers.get("x-api-key") or request.form.get("api_key", "")).strip()
     creator_id = request.form.get("creator_id", "").strip()
     if not api_key or not creator_id:
         return jsonify(error="API key Roblox dan User ID wajib diisi."), 400
@@ -255,9 +255,12 @@ def upload():
         if not result.ok:
             return jsonify(error=f"Roblox API: {result.text[:500]}"), result.status_code
         body = result.json()
+        asset_id = body.get("assetId") or body.get("path")
+        if not asset_id:
+            return jsonify(error="Roblox menerima upload tetapi tidak mengembalikan asset ID.", details=body), 502
         return jsonify(
             uploaded=True,
-            assetId=body.get("assetId") or body.get("path"),
+            assetId=asset_id,
             filename=audio.filename,
             thumbnail="https://media.discordapp.net/attachments/1522140461081432126/1546445784025792583/ChatGPT_Image_Sep_6_2026_09_43_19_PM.png?ex=6a9fcf5e&is=6a9e7dde&hm=a0c4bf964f43eaa55d1497541c8510c8179500e8bb9a595be93c6b52d9069eed&=&format=webp&quality=lossless&width=1024&height=1024",
         )

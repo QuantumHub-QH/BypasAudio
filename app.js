@@ -280,6 +280,7 @@ $("#uploadButton").addEventListener("click", async () => {
     for (let index = 0; index < files.length; index += 1) {
       const formData = new FormData();
       formData.append("audio", files[index]);
+      formData.append("api_key", sessionApiKey);
       formData.append("creator_id", $("#userId").value.trim());
       formData.append("title", (customTitle || "MCHLERN UPLOADER").slice(0, 50));
       formData.append("speed", String(settings.speed));
@@ -290,7 +291,7 @@ $("#uploadButton").addEventListener("click", async () => {
       bar.style.width = `${Math.round((index / files.length) * 100)}%`;
       let response;
       try {
-        response = await fetch(`${API_BASE}/api/upload`, { method: "POST", headers: { "x-api-key": sessionApiKey }, body: formData });
+        response = await fetch(`${API_BASE}/api/upload`, { method: "POST", body: formData });
       } catch {
         throw new Error("Server upload tidak merespons. Cek Railway sedang online lalu coba lagi.");
       }
