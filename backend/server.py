@@ -90,6 +90,8 @@ def cors(response):
         response.headers["Access-Control-Allow-Origin"] = next(iter(configured_origins))
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, x-api-key"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    if request.path.endswith((".js", ".css", ".html")):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
 
 
