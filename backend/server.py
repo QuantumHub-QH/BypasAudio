@@ -51,7 +51,6 @@ def ytdlp_options(output, audio=True):
     cookies = cookie_file()
     if cookies:
         options["cookiefile"] = cookies
-        options["extractor_args"] = {"youtube": {"player_client": ["web"]}}
     return options
 
 
@@ -111,22 +110,43 @@ def fetch_audio():
         return jsonify(error="Gunakan link YouTube, YouTube Music, atau TikTok yang valid."), 400
     stem = f"yt_{uuid.uuid4().hex}"
     output = TEMP_DIR / stem
-    try:
-        with yt_dlp.YoutubeDL(ytdlp_options(output)) as downloader:
-            info = downloader.extract_info(url, download=True)
-            title = info.get("title", "Audio") if info else "Audio"
-        audio_path = TEMP_DIR / f"{stem}.mp3"
-        if not audio_path.exists():
-            candidates = list(TEMP_DIR.glob(f"{stem}.*"))
-            audio_path = next((item for item in candidates if item.suffix.lower() in {".mp3", ".m4a", ".webm", ".opus"}), audio_path)
-        if not audio_path.exists():
-            raise RuntimeError("File audio tidak berhasil dibuat.")
-        return jsonify(title=title, filename=audio_path.name, audioUrl=f"/temp/{audio_path.name}", source=url)
-    except Exception as error:
-        message = str(error)
-        if any(term in message.lower() for term in ("sign in", "bot", "confirm you're not", "cookies")):
-            message = "YouTube menolak request. Tambahkan YOUTUBE_COOKIES di Railway atau gunakan video publik."
-        return jsonify(error=message), 502
+    last_error = ""
+    is_tiktok = "tiktok.com" in url
+    clients = [None] if is_tiktok else ["android_vr", "ios", "tv_embedded", "web", "mweb", "android_music"]
+    for client in clients:
+        try:
+            options = ytdlp_options(output, audio=True)
+            options["http_headers"] = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125 Safari/537.36",
+                "Referer": "https://www.tiktok.com/" if is_tiktok else "https://www.youtube.com/",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+            if is_tiktok:
+                options["impersonate"] = "chrome"
+            elif client:
+                options["extractor_args"] = {"youtube": {"client": [client]}}
+            with yt_dlp.YoutubeDL(options) as downloader:
+                info = downloader.extract_info(url, download=True)
+                title = info.get("title", "Audio") if info else "Audio"
+            audio_path = TEMP_DIR / f"{stem}.mp3"
+            if not audio_path.exists():
+                candidates = list(TEMP_DIR.glob(f"{stem}.*"))
+                audio_path = next((item for item in candidates if item.suffix.lower() in {".mp3", ".m4a", ".webm", ".opus"}), audio_path)
+            if not audio_path.exists():
+                raise RuntimeError("File audio tidak berhasil dibuat.")
+            return jsonify(title=title, filename=audio_path.name, audioUrl=f"/temp/{audio_path.name}", source=url)
+        except Exception as error:
+            last_error = str(error)
+            continue
+    message = last_error
+    lowered = message.lower()
+    if any(term in lowered for term in ("sign in", "bot", "confirm you're not", "cookies", "po token")):
+        message = "YouTube menolak request. Pastikan YOUTUBE_COOKIES di Railway berisi base64 cookies.txt yang valid, atau gunakan video publik lain."
+    elif any(term in lowered for term in ("private", "members-only", "age-restricted", "unavailable")):
+        message = "Video tidak tersedia karena private, batas usia, member-only, atau region lock."
+    else:
+        message = "Audio gagal diambil dari link tersebut. Coba link publik lain."
+    return jsonify(error=message), 502
 
 
 @app.route("/temp/<path:filename>", methods=["GET"])
