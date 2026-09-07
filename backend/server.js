@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, unlink } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -21,6 +22,12 @@ const upload = multer({
 });
 
 await mkdir(uploadDir, { recursive: true });
+const cookiesPath = process.env.MONOFLOW_YTDLP_COOKIES_B64
+  ? path.join(os.tmpdir(), "monoflow-youtube-cookies.txt")
+  : "";
+if (cookiesPath) {
+  await writeFile(cookiesPath, Buffer.from(process.env.MONOFLOW_YTDLP_COOKIES_B64, "base64"), { mode: 0o600 });
+}
 app.disable("x-powered-by");
 app.use((request, response, next) => {
   const origin = process.env.CORS_ORIGIN || "*";
@@ -89,7 +96,8 @@ app.post("/api/fetch", requireApiKey, (request, response) => {
   const output = path.join(uploadDir, `${crypto.randomUUID()}.%(ext)s`);
   const command = process.env.MONOFLOW_YTDLP_COMMAND || "python";
   const commandArgs = command === "python" ? ["-m", "yt_dlp"] : [];
-  const child = spawn(command, [...commandArgs, "--no-playlist", "-x", "--audio-format", "mp3", "-o", output, url], { windowsHide: true });
+  const cookieArgs = cookiesPath ? ["--cookies", cookiesPath] : [];
+  const child = spawn(command, [...commandArgs, "--no-playlist", ...cookieArgs, "-x", "--audio-format", "mp3", "-o", output, url], { windowsHide: true });
   let errorOutput = "";
   let responded = false;
   child.stderr.on("data", (chunk) => { errorOutput += chunk.toString(); });
