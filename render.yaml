@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: monoflow-backend
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: MONOFLOW_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

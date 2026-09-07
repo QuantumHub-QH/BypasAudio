@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#090909" />
+    <title>MCHLERN TOOLS AUDIO ROBLOX</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="MCHLERN Tools Audio Roblox home">
+          <span class="brand-mark">M</span>
+          <span><strong>MCHLERN TOOLS</strong><small>AUDIO ROBLOX</small></span>
+        </a>
+        <div class="connection-status" id="connectionStatus">
+          <span class="status-dot"></span>
+          <span>Belum terhubung</span>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div>
+          <p class="eyebrow">PLAY IT YOUR WAY</p>
+          <h1>Upload. Tune.<br /><em>Move.</em></h1>
+          <p class="hero-copy">Kelola audio kamu dari satu ruang hitam-putih. Cepat, ringan, dan siap dipakai kapan saja.</p>
+        </div>
+        <div class="hero-orbit" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+          <b>MT</b>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="sidebar">
+          <div class="panel-head">
+            <span class="step">01</span>
+            <div><p class="eyebrow">ACCOUNT</p><h2>Connect akun</h2></div>
+          </div>
+          <p class="muted">Masukkan kredensial API untuk mengaktifkan uploader kamu.</p>
+          <form id="connectForm" class="stack-form">
+            <label>User ID<input id="userId" name="userId" type="text" placeholder="mis. player_001" autocomplete="username" required /></label>
+            <label>API Key<div class="input-with-icon"><input id="apiKey" name="apiKey" type="password" placeholder="mf_live_••••••••••" autocomplete="off" required /><button type="button" class="reveal" id="revealKey" aria-label="Tampilkan API key">◉</button></div></label>
+            <button class="button button-light" type="submit"><span class="button-icon">↗</span> Konekin akun</button>
+          </form>
+          <div class="account-note"><span>⌁</span><p>API key hanya dipakai selama sesi ini dan dikirim melalui koneksi backend.</p></div>
+        </aside>
+
+        <div class="content-column">
+          <section class="card source-card">
+            <div class="panel-head">
+              <span class="step">02</span>
+              <div><p class="eyebrow">SOURCE</p><h2>Ambil audio</h2></div>
+            </div>
+            <div class="source-tabs" role="tablist">
+              <button class="source-tab active" data-source="link" type="button">Audio link</button>
+              <button class="source-tab" data-source="file" type="button">Upload file</button>
+            </div>
+            <div id="linkSource" class="source-pane">
+              <label class="sr-only" for="audioUrl">Audio URL</label>
+              <div class="url-row"><input id="audioUrl" type="url" placeholder="Paste link YouTube, YouTube Music, atau TikTok..." /><button id="fetchButton" class="button button-white" type="button">Fetch audio <span>↓</span></button></div>
+              <div class="source-hints"><span>● Supported</span><span>YouTube</span><span>YouTube Music</span><span>TikTok</span></div>
+            </div>
+            <div id="fileSource" class="source-pane hidden">
+              <label class="dropzone" id="dropzone" for="audioFile">
+                <input id="audioFile" type="file" accept="audio/*" />
+                <span class="upload-symbol">↑</span><strong>Drop audio di sini</strong><small>atau klik untuk pilih file · MP3, WAV, M4A, OGG</small>
+              </label>
+            </div>
+            <div class="progress-wrap hidden" id="fetchProgressWrap"><div class="progress-label"><span id="progressLabel">Fetching audio...</span><span id="progressPercent">0%</span></div><div class="progress-track"><span id="fetchProgress"></span></div></div>
+            <p class="inline-message" id="sourceMessage" role="status"></p>
+          </section>
+
+          <section class="card player-card">
+            <div class="panel-head panel-head-player"><div><p class="eyebrow">PREVIEW</p><h2>Audio preview</h2></div><span class="file-badge" id="fileBadge">NO AUDIO</span></div>
+            <div class="player-main">
+              <div class="cover-art"><div class="cover-lines"></div><span id="coverInitial">MT</span></div>
+              <div class="track-meta"><h3 id="trackName">Pilih audio untuk mulai</h3><p id="trackDetail">Preview audio kamu akan muncul di sini</p><div class="waveform" id="waveform" aria-hidden="true"></div></div>
+              <button class="play-button" id="playButton" type="button" aria-label="Play preview">▶</button>
+            </div>
+            <audio id="audioPlayer" preload="metadata"></audio>
+            <div class="timeline"><span id="currentTime">00:00</span><input id="seekBar" type="range" min="0" max="100" value="0" aria-label="Seek audio" /><span id="duration">00:00</span></div>
+            <div class="player-footer"><span><span class="live-dot"></span> PREVIEW MODE</span><span id="playerState">Ready when you are</span></div>
+          </section>
+
+          <section class="card controls-card">
+            <div class="panel-head"><span class="step">03</span><div><p class="eyebrow">PLAYBACK CONTROL</p><h2>Setelan playback</h2></div><button class="reset-button" id="resetButton" type="button">↺ Reset setting</button></div>
+            <div class="control-grid">
+              <div class="control-block"><div class="control-label"><span>Speed</span><strong id="speedValue">1.00×</strong></div><input id="speedControl" type="range" min="0.5" max="3.5" step="0.01" value="1" /><div class="preset-list" id="speedPresets"><button type="button" data-speed="1">1.0×</button><button type="button" data-speed="1.5">1.5×</button><button type="button" data-speed="1.6">1.6×</button><button type="button" data-speed="2.3">2.3×</button><button type="button" data-speed="2.6">2.6×</button><button type="button" data-speed="3">3.0×</button></div><p class="recommendation">✦ <b>Rekomendasi game:</b> 1.5× – 1.6× untuk musik tetap terasa normal.</p></div>
+              <div class="control-block"><div class="control-label"><span>Volume</span><strong id="volumeValue">80%</strong></div><input id="volumeControl" type="range" min="0" max="100" value="80" /><div class="range-endpoints"><span>Mute</span><span>Max</span></div></div>
+              <div class="control-block"><div class="control-label"><span>Pitch</span><strong id="pitchValue">0 st</strong></div><input id="pitchControl" type="range" min="-12" max="12" step="1" value="0" /><div class="range-endpoints"><span>-12 st</span><span>+12 st</span></div></div>
+            </div>
+          </section>
+
+          <div class="upload-action"><div><p class="eyebrow">READY?</p><strong>Audio kamu siap diproses.</strong></div><button class="button button-white button-large" id="uploadButton" type="button">Upload audio <span>↗</span></button></div>
+          <div class="progress-wrap upload-progress hidden" id="uploadProgressWrap"><div class="progress-label"><span id="uploadLabel">Uploading audio...</span><span id="uploadPercent">0%</span></div><div class="progress-track"><span id="uploadProgress"></span></div></div>
+          <p class="inline-message" id="uploadMessage" role="status"></p>
+        </div>
+      </section>
+      <footer><span>MCHLERN TOOLS / 2024</span><span>Audio tools for focused Roblox sessions</span></footer>
+    </main>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
