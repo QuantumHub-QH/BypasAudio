@@ -1,4 +1,6 @@
 import base64
+import hmac
+import json
 import os
 import shutil
 import subprocess
@@ -14,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 TEMP_DIR = ROOT / "uploads"
 TEMP_DIR.mkdir(exist_ok=True)
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
 
 def cookie_file():
@@ -29,6 +32,12 @@ def cookie_file():
         raise RuntimeError("YOUTUBE_COOKIES bukan export cookies.txt format Netscape.")
     target.write_bytes(decoded)
     return str(target)
+
+
+def admin_authorized():
+    configured = os.environ.get("ADMIN_PASSWORD", "")
+    supplied = request.headers.get("x-admin-password", "")
+    return bool(configured) and hmac.compare_digest(supplied, configured)
 
 
 def supported_url(value):
@@ -158,6 +167,50 @@ def fetch_audio():
     else:
         message = "Audio gagal diambil dari link tersebut. Coba link publik lain."
     return jsonify(error=message), 502
+
+
+@app.route("/api/admin/cookies", methods=["POST"])
+def update_cookies():
+    if not admin_authorized():
+        return jsonify(error="Password admin salah atau belum dikonfigurasi."), 401
+    upload = request.files.get("cookies")
+    if not upload or not upload.filename:
+        return jsonify(error="Upload file cookies.txt terlebih dahulu."), 400
+    contents = upload.read()
+    if b"# Netscape HTTP Cookie File" not in contents[:5000] and b"\t.youtube.com\t" not in contents:
+        return jsonify(error="File harus berupa cookies.txt format Netscape."), 400
+    railway_token = os.environ.get("RAILWAY_API_TOKEN", "").strip()
+    project_id = os.environ.get("RAILWAY_PROJECT_ID", "").strip()
+    environment_id = os.environ.get("RAILWAY_ENVIRONMENT_ID", "").strip()
+    service_id = os.environ.get("RAILWAY_SERVICE_ID", "").strip()
+    if not all((railway_token, project_id, environment_id, service_id)):
+        return jsonify(error="Konfigurasi Railway admin belum lengkap di environment server."), 503
+    value = base64.b64encode(contents).decode("ascii")
+    query = """
+      mutation UpsertVariable($input: VariableUpsertInput!) {
+        variableUpsert(input: $input) { id }
+      }
+    """
+    variables = {"input": {
+        "projectId": project_id,
+        "environmentId": environment_id,
+        "serviceId": service_id,
+        "name": "YOUTUBE_COOKIES",
+        "value": value,
+    }}
+    try:
+        response = requests.post(
+            "https://backboard.railway.com/graphql/v2",
+            json={"query": query, "variables": variables},
+            headers={"Authorization": f"Bearer {railway_token}", "Content-Type": "application/json"},
+            timeout=20,
+        )
+        body = response.json()
+    except (requests.RequestException, ValueError):
+        return jsonify(error="Railway tidak dapat dihubungi."), 502
+    if not response.ok or body.get("errors"):
+        return jsonify(error="Railway menolak update variable. Cek ID project, environment, service, dan token."), 502
+    return jsonify(updated=True, message="YOUTUBE_COOKIES berhasil diperbarui di Railway. Redeploy akan berjalan otomatis.")
 
 
 @app.route("/temp/<path:filename>", methods=["GET"])

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MCHLERN Admin</title>
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <main class="admin-shell">
+      <header><a href="/">MCHLERN TOOLS</a><span>COOKIE CONTROL</span></header>
+      <section class="admin-card">
+        <p class="eyebrow">PRIVATE ADMIN LINK</p>
+        <h1>Update YouTube cookies</h1>
+        <p class="muted">Upload cookies.txt terbaru. File akan diubah ke base64 dan dikirim ke Railway tanpa pernah ditampilkan di halaman.</p>
+        <form id="cookieForm">
+          <label>Password admin<input id="adminPassword" type="password" autocomplete="current-password" required /></label>
+          <label>cookies.txt<input id="cookieFile" type="file" accept=".txt,text/plain" required /></label>
+          <button type="submit" id="submitButton">Update Railway</button>
+        </form>
+        <p id="message" role="status"></p>
+      </section>
+    </main>
+    <script src="admin.js"></script>
+  </body>
+</html>
