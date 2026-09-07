@@ -75,7 +75,12 @@ $("#connectForm").addEventListener("submit", (event) => {
     if (!response.ok) throw new Error(result.error || "Koneksi gagal.");
     sessionApiKey = apiKey;
     $("#connectionStatus").classList.add("connected");
-    $("#connectionStatus span:last-child").textContent = `Terhubung sebagai ${result.userId}`;
+    $("#connectionStatus span:last-child").textContent = `@${result.username}`;
+    $("#profileAvatar").src = result.avatarUrl;
+    $("#profileDisplayName").textContent = result.displayName;
+    $("#profileUsername").textContent = `@${result.username} · ID ${result.userId}`;
+    $("#profileCard").classList.remove("hidden");
+    setMessage($("#sourceMessage"), `Akun Roblox ${result.displayName} berhasil terhubung.`, "success");
   }).catch((error) => setMessage($("#sourceMessage"), error.message, "error"));
 });
 
