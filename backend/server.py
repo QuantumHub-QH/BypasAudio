@@ -128,13 +128,14 @@ def fetch_audio():
             with yt_dlp.YoutubeDL(options) as downloader:
                 info = downloader.extract_info(url, download=True)
                 title = info.get("title", "Audio") if info else "Audio"
+                thumbnail = info.get("thumbnail", "") if info else ""
             audio_path = TEMP_DIR / f"{stem}.mp3"
             if not audio_path.exists():
                 candidates = list(TEMP_DIR.glob(f"{stem}.*"))
                 audio_path = next((item for item in candidates if item.suffix.lower() in {".mp3", ".m4a", ".webm", ".opus"}), audio_path)
             if not audio_path.exists():
                 raise RuntimeError("File audio tidak berhasil dibuat.")
-            return jsonify(title=title, filename=audio_path.name, audioUrl=f"/temp/{audio_path.name}", source=url)
+            return jsonify(title=title, thumbnail=thumbnail, filename=audio_path.name, audioUrl=f"/temp/{audio_path.name}", source=url)
         except Exception as error:
             last_error = str(error)
             continue
