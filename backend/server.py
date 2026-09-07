@@ -15,23 +15,27 @@ from flask import Flask, jsonify, request, send_from_directory
 ROOT = Path(__file__).resolve().parent.parent
 TEMP_DIR = ROOT / "uploads"
 TEMP_DIR.mkdir(exist_ok=True)
+COOKIE_PATH = Path(os.environ.get("DATA_DIR", str(ROOT))) / "youtube_cookies.txt"
+COOKIE_PATH.parent.mkdir(exist_ok=True)
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
 
 def cookie_file():
     encoded = os.environ.get("YOUTUBE_COOKIES", "").strip()
-    if not encoded:
-        return None
-    target = Path(tempfile.gettempdir()) / "mchlern-youtube-cookies.txt"
-    try:
-        decoded = base64.b64decode(encoded, validate=True)
-    except (ValueError, base64.binascii.Error) as error:
-        raise RuntimeError("YOUTUBE_COOKIES bukan base64 yang valid.") from error
-    if b"# Netscape HTTP Cookie File" not in decoded[:5000] and b"\t.youtube.com\t" not in decoded:
-        raise RuntimeError("YOUTUBE_COOKIES bukan export cookies.txt format Netscape.")
-    target.write_bytes(decoded)
-    return str(target)
+    if encoded:
+        target = Path(tempfile.gettempdir()) / "mchlern-youtube-cookies.txt"
+        try:
+            decoded = base64.b64decode(encoded, validate=True)
+        except (ValueError, base64.binascii.Error) as error:
+            raise RuntimeError("YOUTUBE_COOKIES bukan base64 yang valid.") from error
+        if b"# Netscape HTTP Cookie File" not in decoded[:5000] and b"\t.youtube.com\t" not in decoded:
+            raise RuntimeError("YOUTUBE_COOKIES bukan export cookies.txt format Netscape.")
+        target.write_bytes(decoded)
+        return str(target)
+    if COOKIE_PATH.exists():
+        return str(COOKIE_PATH)
+    return None
 
 
 def admin_authorized():
@@ -179,41 +183,8 @@ def update_cookies():
     contents = upload.read()
     if b"# Netscape HTTP Cookie File" not in contents[:5000] and b"\t.youtube.com\t" not in contents:
         return jsonify(error="File harus berupa cookies.txt format Netscape."), 400
-    railway_token = os.environ.get("RAILWAY_API_TOKEN", "").strip()
-    project_id = os.environ.get("RAILWAY_PROJECT_ID", "").strip()
-    environment_id = os.environ.get("RAILWAY_ENVIRONMENT_ID", "").strip()
-    service_id = os.environ.get("RAILWAY_SERVICE_ID", "").strip()
-    if not all((railway_token, project_id, environment_id, service_id)):
-        return jsonify(error="Konfigurasi Railway admin belum lengkap di environment server."), 503
-    value = base64.b64encode(contents).decode("ascii")
-    query = """
-      mutation UpsertVariable($input: VariableUpsertInput!) {
-        variableUpsert(input: $input)
-      }
-    """
-    variables = {"input": {
-        "projectId": project_id,
-        "environmentId": environment_id,
-        "serviceId": service_id,
-        "name": "YOUTUBE_COOKIES",
-        "value": value,
-    }}
-    try:
-        response = requests.post(
-            "https://backboard.railway.com/graphql/v2",
-            json={"query": query, "variables": variables},
-            headers={"Authorization": f"Bearer {railway_token}", "Content-Type": "application/json"},
-            timeout=20,
-        )
-        body = response.json()
-    except (requests.RequestException, ValueError):
-        return jsonify(error="Railway tidak dapat dihubungi."), 502
-    if not response.ok or body.get("errors"):
-        errors = body.get("errors") or []
-        detail = errors[0].get("message", "") if errors else ""
-        safe_detail = detail[:180].replace("\n", " ")
-        return jsonify(error=f"Railway menolak update variable{': ' + safe_detail if safe_detail else '. Cek token dan semua ID.'}"), 502
-    return jsonify(updated=True, message="YOUTUBE_COOKIES berhasil diperbarui di Railway. Redeploy akan berjalan otomatis.")
+    COOKIE_PATH.write_bytes(contents)
+    return jsonify(updated=True, message="Cookies aktif di server. Tidak perlu Railway API token.")
 
 
 @app.route("/temp/<path:filename>", methods=["GET"])
