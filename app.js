@@ -138,12 +138,12 @@ $("#fetchButton").addEventListener("click", () => {
   $("#fetchButton").disabled = true;
   wrap.classList.remove("hidden");
   bar.style.width = "20%"; percent.textContent = "20%"; label.textContent = "Fetching audio...";
-  fetch(`${API_BASE}/api/fetch`, { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": sessionApiKey }, body: JSON.stringify({ url }) })
+  fetch(`${API_BASE}/api/fetch-yt`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) })
     .then(async (response) => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Fetch gagal.");
       bar.style.width = "100%"; percent.textContent = "100%"; label.textContent = "Fetch selesai";
-      const audioResponse = await fetch(`${API_BASE}/api/audio/${encodeURIComponent(result.filename)}`, { headers: { "x-api-key": sessionApiKey } });
+      const audioResponse = await fetch(`${API_BASE}${result.audioUrl}`);
       if (!audioResponse.ok) throw new Error("Audio hasil fetch tidak dapat diputar.");
       const blob = await audioResponse.blob();
       loadAudio(new File([blob], result.filename, { type: "audio/mpeg" }), `Audio dari ${result.source}`);
@@ -198,6 +198,10 @@ $("#uploadButton").addEventListener("click", () => {
   $("#uploadButton").disabled = true;
   const formData = new FormData();
   if (currentFile) formData.append("audio", currentFile);
+  formData.append("creator_id", $("#userId").value.trim());
+  formData.append("title", $("#trackName").textContent || "MCHLERN Audio");
+  formData.append("speed", String(settings.speed));
+  formData.append("volume", String(settings.volume));
   fetch(`${API_BASE}/api/upload`, { method: "POST", headers: { "x-api-key": sessionApiKey }, body: formData })
     .then(async (response) => {
       const result = await response.json();
