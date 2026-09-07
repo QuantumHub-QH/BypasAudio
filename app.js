@@ -5,7 +5,9 @@ const audio = $("#audioPlayer");
 const defaultSettings = { speed: 1, volume: 80, pitch: 0 };
 let settings = { ...defaultSettings };
 let currentFile = null;
+let selectedFiles = [];
 let sessionApiKey = "";
+const uploadThumbnail = "https://media.discordapp.net/attachments/1522140461081432126/1546445784025792583/ChatGPT_Image_Sep_6_2026_09_43_19_PM.png?ex=6a9fcf5e&is=6a9e7dde&hm=a0c4bf964f43eaa55d1497541c8510c8179500e8bb9a595be93c6b52d9069eed&=&format=webp&quality=lossless&width=1024&height=1024";
 const accountStorageKey = "mchlern.roblox.account";
 
 function formatTime(seconds) {
@@ -140,15 +142,17 @@ document.querySelectorAll(".source-tab").forEach((tab) => {
 });
 
 $("#audioFile").addEventListener("change", (event) => {
-  const [file] = event.target.files;
+  selectedFiles = [...event.target.files].filter((file) => file.type.startsWith("audio/")).slice(0, 8);
+  if (event.target.files.length > 8) setMessage($("#sourceMessage"), "Maksimal 8 audio untuk sekali upload. 8 file pertama yang dipilih dipakai.", "error");
+  const [file] = selectedFiles;
   if (file) loadAudio(file);
 });
 
 $("#dropzone").addEventListener("dragover", (event) => event.preventDefault());
 $("#dropzone").addEventListener("drop", (event) => {
   event.preventDefault();
-  const [file] = event.dataTransfer.files;
-  if (file && file.type.startsWith("audio/")) loadAudio(file);
+  selectedFiles = [...event.dataTransfer.files].filter((file) => file.type.startsWith("audio/")).slice(0, 8);
+  if (selectedFiles.length) loadAudio(selectedFiles[0]);
 });
 
 $("#fetchButton").addEventListener("click", () => {
@@ -176,21 +180,47 @@ $("#fetchButton").addEventListener("click", () => {
   const bar = $("#fetchProgress");
   const percent = $("#progressPercent");
   const label = $("#progressLabel");
+  const caption = $("#loadingCaption");
+  let progressValue = 20;
+  const progressSteps = [
+    ["Mencari audio...", "Lagi nyari sumber audio yang pas..."],
+    ["Mengambil metadata...", "Judul dan thumbnail ikut dibangunin..."],
+    ["Menyiapkan preview...", "Dikit lagi, jangan ikut ngantuk..."],
+  ];
+  let progressStep = 0;
+  let progressTimer;
   $("#fetchButton").disabled = true;
   wrap.classList.remove("hidden");
+  wrap.classList.add("is-fetching");
   bar.style.width = "20%"; percent.textContent = "20%"; label.textContent = "Fetching audio...";
+  caption.textContent = "Sabar ya, audio lagi dibangunin...";
+  progressTimer = setInterval(() => {
+    progressValue = Math.min(88, progressValue + Math.ceil(Math.random() * 5));
+    bar.style.width = `${progressValue}%`;
+    percent.textContent = `${progressValue}%`;
+    [label.textContent, caption.textContent] = progressSteps[progressStep % progressSteps.length];
+    progressStep += 1;
+  }, 900);
   fetch(`${API_BASE}/api/fetch-yt`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) })
     .then(async (response) => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Fetch gagal.");
+      clearInterval(progressTimer);
       bar.style.width = "100%"; percent.textContent = "100%"; label.textContent = "Fetch selesai";
+      caption.textContent = "Bangun! Audio siap dipreview.";
       const audioResponse = await fetch(`${API_BASE}${result.audioUrl}`);
       if (!audioResponse.ok) throw new Error("Audio hasil fetch tidak dapat diputar.");
       const blob = await audioResponse.blob();
-      loadAudio(new File([blob], result.filename, { type: "audio/mpeg" }), result.title || `Audio dari ${result.source}`, result.thumbnail || "");
+      const fetchedFile = new File([blob], result.filename, { type: "audio/mpeg" });
+      selectedFiles = [fetchedFile];
+      loadAudio(fetchedFile, result.title || `Audio dari ${result.source}`, result.thumbnail || "");
     })
-    .catch((error) => setMessage($("#sourceMessage"), error.message, "error"))
-    .finally(() => { $("#fetchButton").disabled = false; });
+    .catch((error) => {
+      clearInterval(progressTimer);
+      caption.textContent = "Keburu ngantuk. Coba link lain atau ulangi lagi.";
+      setMessage($("#sourceMessage"), error.message, "error");
+    })
+    .finally(() => { clearInterval(progressTimer); $("#fetchButton").disabled = false; wrap.classList.remove("is-fetching"); });
 });
 
 $("#playButton").addEventListener("click", async () => {
@@ -220,10 +250,16 @@ $("#seekBar").addEventListener("input", (event) => { if (audio.duration) audio.c
 $("#speedControl").addEventListener("input", (event) => { settings.speed = Number(event.target.value); updatePlayback(); });
 $("#volumeControl").addEventListener("input", (event) => { settings.volume = Number(event.target.value); updatePlayback(); });
 $("#pitchControl").addEventListener("input", (event) => { settings.pitch = Number(event.target.value); updatePlayback(); });
-document.querySelectorAll("[data-speed]").forEach((button) => button.addEventListener("click", () => { settings.speed = Number(button.dataset.speed); updatePlayback(); }));
+document.querySelectorAll("[data-speed]").forEach((button) => button.addEventListener("click", () => {
+  settings.speed = Number(button.dataset.speed);
+  settings.volume = Number(button.dataset.volume || 80);
+  settings.pitch = Number(button.dataset.pitch || 0);
+  updatePlayback();
+}));
 $("#resetButton").addEventListener("click", () => { settings = { ...defaultSettings }; updatePlayback(); setMessage($("#sourceMessage"), "Setelan dikembalikan ke normal: speed 1.0×, volume 80%, pitch 0 st.", "success"); });
+$("#uploadTitle").addEventListener("input", (event) => { $("#titleCount").textContent = event.target.value.length; });
 
-$("#uploadButton").addEventListener("click", () => {
+$("#uploadButton").addEventListener("click", async () => {
   if (!currentFile && !$("#audioUrl").value.trim()) {
     setMessage($("#uploadMessage"), "Pilih file atau fetch audio sebelum upload.", "error");
     return;
@@ -232,26 +268,39 @@ $("#uploadButton").addEventListener("click", () => {
     setMessage($("#uploadMessage"), "Konekin akun terlebih dahulu sebelum upload.", "error");
     return;
   }
+  const files = selectedFiles.length ? selectedFiles : [currentFile];
+  const customTitle = $("#uploadTitle").value.trim();
   const wrap = $("#uploadProgressWrap");
   const bar = $("#uploadProgress");
   const percent = $("#uploadPercent");
   const label = $("#uploadLabel");
   $("#uploadButton").disabled = true;
-  const formData = new FormData();
-  if (currentFile) formData.append("audio", currentFile);
-  formData.append("creator_id", $("#userId").value.trim());
-  formData.append("title", $("#trackName").textContent || "MCHLERN Audio");
-  formData.append("speed", String(settings.speed));
-  formData.append("volume", String(settings.volume));
-  fetch(`${API_BASE}/api/upload`, { method: "POST", headers: { "x-api-key": sessionApiKey }, body: formData })
-    .then(async (response) => {
+  try {
+    for (let index = 0; index < files.length; index += 1) {
+      const formData = new FormData();
+      formData.append("audio", files[index]);
+      formData.append("creator_id", $("#userId").value.trim());
+      formData.append("title", (customTitle || "MCHLERN UPLOADER").slice(0, 50));
+      formData.append("speed", String(settings.speed));
+      formData.append("volume", String(settings.volume));
+      formData.append("pitch", String(settings.pitch));
+      label.textContent = `Uploading ${index + 1}/${files.length}...`;
+      percent.textContent = `${Math.round((index / files.length) * 100)}%`;
+      bar.style.width = `${Math.round((index / files.length) * 100)}%`;
+      const response = await fetch(`${API_BASE}/api/upload`, { method: "POST", headers: { "x-api-key": sessionApiKey }, body: formData });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Upload gagal.");
-      bar.style.width = "100%"; percent.textContent = "100%"; label.textContent = "Upload selesai";
-      setMessage($("#uploadMessage"), `Audio ${result.filename} berhasil diupload.`, "success");
-    })
-    .catch((error) => setMessage($("#uploadMessage"), error.message, "error"))
-    .finally(() => { $("#uploadButton").disabled = false; });
+    }
+    bar.style.width = "100%"; percent.textContent = "100%"; label.textContent = "Upload selesai";
+    $("#coverImage").src = uploadThumbnail;
+    $("#coverImage").classList.add("visible");
+    $("#coverInitial").classList.add("hidden");
+    setMessage($("#uploadMessage"), `${files.length} audio berhasil diupload dengan thumbnail MCHLERN.`, "success");
+  } catch (error) {
+    setMessage($("#uploadMessage"), error.message, "error");
+  } finally {
+    $("#uploadButton").disabled = false;
+  }
 });
 
 updatePlayback();

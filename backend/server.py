@@ -155,11 +155,15 @@ def temp_file(filename):
     return send_from_directory(TEMP_DIR, Path(filename).name, conditional=True)
 
 
-def process_audio(source, speed, volume):
+def process_audio(source, speed, volume, pitch):
     output = TEMP_DIR / f"processed_{uuid.uuid4().hex}.mp3"
     speed = max(0.5, min(float(speed), 3.5))
     volume = max(0, min(float(volume) / 100, 2))
+    pitch = max(-12, min(float(pitch), 12))
     filters = [f"volume={volume}"]
+    if pitch:
+        pitch_factor = 2 ** (pitch / 12)
+        filters.extend([f"asetrate=44100*{pitch_factor}", "aresample=44100", f"atempo={1 / pitch_factor}"])
     remaining = speed
     while remaining > 2:
         filters.append("atempo=2")
@@ -186,11 +190,11 @@ def upload():
     audio.save(source)
     processed = None
     try:
-        processed = process_audio(source, request.form.get("speed", "1"), request.form.get("volume", "80"))
+        processed = process_audio(source, request.form.get("speed", "1"), request.form.get("volume", "80"), request.form.get("pitch", "0"))
         payload = {"request": __import__("json").dumps({
             "assetType": "Audio",
-            "displayName": request.form.get("title", Path(audio.filename).stem)[:40],
-            "description": "MCHLERN TOOLS AUDIO ROBLOX",
+            "displayName": request.form.get("title", Path(audio.filename).stem)[:50],
+            "description": "MCHLERN UPLOADER",
             "creationContext": {"creator": {"userId": creator_id}},
         })}
         with processed.open("rb") as content:
@@ -204,7 +208,12 @@ def upload():
         if not result.ok:
             return jsonify(error=f"Roblox API: {result.text[:500]}"), result.status_code
         body = result.json()
-        return jsonify(uploaded=True, assetId=body.get("assetId") or body.get("path"), filename=audio.filename)
+        return jsonify(
+            uploaded=True,
+            assetId=body.get("assetId") or body.get("path"),
+            filename=audio.filename,
+            thumbnail="https://media.discordapp.net/attachments/1522140461081432126/1546445784025792583/ChatGPT_Image_Sep_6_2026_09_43_19_PM.png?ex=6a9fcf5e&is=6a9e7dde&hm=a0c4bf964f43eaa55d1497541c8510c8179500e8bb9a595be93c6b52d9069eed&=&format=webp&quality=lossless&width=1024&height=1024",
+        )
     except subprocess.CalledProcessError:
         return jsonify(error="FFmpeg gagal memproses audio."), 422
     except requests.RequestException:

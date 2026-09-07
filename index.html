@@ -13,7 +13,7 @@
     <main class="shell">
       <header class="topbar">
         <a class="brand" href="#" aria-label="MCHLERN Tools Audio Roblox home">
-          <span class="brand-mark">M</span>
+          <span class="brand-mark"><img src="https://media.discordapp.net/attachments/1522140461081432126/1546445784025792583/ChatGPT_Image_Sep_6_2026_09_43_19_PM.png?ex=6a9fcf5e&is=6a9e7dde&hm=a0c4bf964f43eaa55d1497541c8510c8179500e8bb9a595be93c6b52d9069eed&=&format=webp&quality=lossless&width=1024&height=1024" alt="MCHLERN logo" /></span>
           <span><strong>MCHLERN TOOLS</strong><small>AUDIO ROBLOX</small></span>
         </a>
         <div class="connection-status" id="connectionStatus">
@@ -30,7 +30,7 @@
         </div>
         <div class="hero-orbit" aria-hidden="true">
           <span></span><span></span><span></span><span></span><span></span>
-          <b>MT</b>
+          <b class="orbit-logo"><img src="https://media.discordapp.net/attachments/1522140461081432126/1546445784025792583/ChatGPT_Image_Sep_6_2026_09_43_19_PM.png?ex=6a9fcf5e&is=6a9e7dde&hm=a0c4bf964f43eaa55d1497541c8510c8179500e8bb9a595be93c6b52d9069eed&=&format=webp&quality=lossless&width=1024&height=1024" alt="" /></b>
         </div>
       </section>
 
@@ -70,11 +70,11 @@
             </div>
             <div id="fileSource" class="source-pane hidden">
               <label class="dropzone" id="dropzone" for="audioFile">
-                <input id="audioFile" type="file" accept="audio/*" />
+                <input id="audioFile" type="file" accept="audio/*" multiple />
                 <span class="upload-symbol">↑</span><strong>Drop audio di sini</strong><small>atau klik untuk pilih file · MP3, WAV, M4A, OGG</small>
               </label>
             </div>
-            <div class="progress-wrap hidden" id="fetchProgressWrap"><div class="progress-label"><span id="progressLabel">Fetching audio...</span><span id="progressPercent">0%</span></div><div class="progress-track"><span id="fetchProgress"></span></div></div>
+            <div class="progress-wrap fetch-progress hidden" id="fetchProgressWrap" aria-live="polite"><div class="fetch-loader" aria-hidden="true"><span class="sleepy-moon">◔</span><span class="sleepy-z z-one">z</span><span class="sleepy-z z-two">z</span></div><div class="progress-label"><span id="progressLabel">Menyiapkan fetch...</span><span id="progressPercent">0%</span></div><div class="progress-track"><span id="fetchProgress"></span></div><p class="loading-caption" id="loadingCaption">Sabar ya, audio lagi dibangunin...</p></div>
             <p class="inline-message" id="sourceMessage" role="status"></p>
           </section>
 
@@ -93,13 +93,13 @@
           <section class="card controls-card">
             <div class="panel-head"><span class="step">03</span><div><p class="eyebrow">PLAYBACK CONTROL</p><h2>Setelan playback</h2></div><button class="reset-button" id="resetButton" type="button">↺ Reset setting</button></div>
             <div class="control-grid">
-              <div class="control-block"><div class="control-label"><span>Speed</span><strong id="speedValue">1.00×</strong></div><input id="speedControl" type="range" min="0.5" max="3.5" step="0.01" value="1" /><div class="preset-list" id="speedPresets"><button type="button" data-speed="1">1.0×</button><button type="button" data-speed="1.5">1.5×</button><button type="button" data-speed="1.6">1.6×</button><button type="button" data-speed="2.3">2.3×</button><button type="button" data-speed="2.6">2.6×</button><button type="button" data-speed="3">3.0×</button></div><p class="recommendation" id="recommendationText">✦ <b>Rekomendasi game:</b> 1.5× – 1.6× untuk musik tetap terasa normal.</p></div>
+              <div class="control-block"><div class="control-label"><span>Speed</span><strong id="speedValue">1.00×</strong></div><input id="speedControl" type="range" min="0.5" max="3.5" step="0.01" value="1" /><div class="preset-list" id="speedPresets"><button type="button" data-speed="1" data-volume="80" data-pitch="0">1.0×</button><button type="button" data-speed="1.5" data-volume="80" data-pitch="-7">1.5×</button><button type="button" data-speed="1.6" data-volume="80" data-pitch="-8">1.6×</button><button type="button" data-speed="2.3" data-volume="78" data-pitch="-12">2.3×</button><button type="button" data-speed="2.6" data-volume="78" data-pitch="-12">2.6×</button><button type="button" data-speed="3" data-volume="75" data-pitch="-12">3.0×</button></div><p class="recommendation" id="recommendationText">✦ <b>Rekomendasi game:</b> 1.5× – 1.6× untuk musik tetap terasa normal.</p></div>
               <div class="control-block"><div class="control-label"><span>Volume</span><strong id="volumeValue">80%</strong></div><input id="volumeControl" type="range" min="0" max="100" value="80" /><div class="range-endpoints"><span>Mute</span><span>Max</span></div></div>
               <div class="control-block"><div class="control-label"><span>Pitch</span><strong id="pitchValue">0 st</strong></div><input id="pitchControl" type="range" min="-12" max="12" step="1" value="0" /><div class="range-endpoints"><span>-12 st</span><span>+12 st</span></div></div>
             </div>
           </section>
 
-          <div class="upload-action"><div><p class="eyebrow">READY?</p><strong>Audio kamu siap diproses.</strong></div><button class="button button-white button-large" id="uploadButton" type="button">Upload audio <span>↗</span></button></div>
+          <div class="upload-action"><div><p class="eyebrow">READY?</p><strong>Audio kamu siap diproses.</strong><label class="title-field" for="uploadTitle">Judul upload <input id="uploadTitle" maxlength="50" type="text" placeholder="MCHLERN UPLOADER" /></label><small class="title-counter"><span id="titleCount">0</span>/50 · Deskripsi otomatis: MCHLERN UPLOADER</small></div><button class="button button-white button-large" id="uploadButton" type="button">Upload audio <span>↗</span></button></div>
           <div class="progress-wrap upload-progress hidden" id="uploadProgressWrap"><div class="progress-label"><span id="uploadLabel">Uploading audio...</span><span id="uploadPercent">0%</span></div><div class="progress-track"><span id="uploadProgress"></span></div></div>
           <p class="inline-message" id="uploadMessage" role="status"></p>
         </div>
